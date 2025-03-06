@@ -6,8 +6,6 @@ const port = process.env.PORT || 3000
 
 // midle Ware 
 
-// DB_USER: Job_Portal
-// DB_PASS: H3SSy1aJ0rgu8gVM
 
 // mongoDb add to server 
 
@@ -30,6 +28,19 @@ async function run() {
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
+        const jobsCollection = client.db('job_portal').collection('allJobs')
+
+        // job related api 
+        app.get('/jobs', async (req, res) => {
+            const result = await jobsCollection.find().toArray()
+            res.send(result)
+        })
+
+
+
+
+
     } finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
