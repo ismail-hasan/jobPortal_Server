@@ -1,11 +1,14 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
+const cors = require('cors')
 require('dotenv').config()
 const app = express()
+var jwt = require('jsonwebtoken');
 const port = process.env.PORT || 3000
 
 // midle Ware 
-
+app.use(cors())
+app.use(express.json())
 
 // mongoDb add to server 
 
@@ -30,10 +33,93 @@ async function run() {
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         const jobsCollection = client.db('job_portal').collection('allJobs')
+        const UserJobCollection = client.db('job_portal').collection('UserJobsCollection')
+
+
+
+        // jwt related api
+        app.get("jwt", async (req, res) => {
+            const body = req.body
+            const token = jwt.sign(body, "secret", { expiresIn: "1h" })
+            res.send(token)
+        })
+
+
 
         // job related api 
         app.get('/jobs', async (req, res) => {
-            const result = await jobsCollection.find().toArray()
+            const email = req.query.email
+            let query = {}
+            if (email) {
+                query = { hr_email: email }
+            }
+            console.log(email)
+            const result = await jobsCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.get('/jobs/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await jobsCollection.findOne(query)
+            res.send(result)
+        })
+
+        app.post("/jobs", async (req, res) => {
+            const body = req.body
+            const result = await jobsCollection.insertOne(body)
+            res.send(result)
+        })
+
+
+        // job application related api 
+        app.post("/job-application", async (req, res) => {
+            const data = req.body
+            const result = await UserJobCollection.insertOne(data)
+            res.send(result)
+
+        })
+
+        app.get("/job-application/jobs/:job_id", async (req, res) => {
+            const id = req.params.job_id
+            const query = { JobId: id }
+            console.log(query)
+            const result = await UserJobCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.get("/job-application", async (req, res) => {
+            const email = req.query.email
+            const query = { JobEmail: email }
+            const result = await UserJobCollection.find(query).toArray()
+
+
+            // fokira away 
+            for (const singleResult of result) {
+                const query1 = { _id: new ObjectId(singleResult.JobId) }
+                const result1 = await jobsCollection.findOne(query1)
+                if (result1) {
+                    singleResult.title = result1.title
+                    singleResult.location = result1.location
+                    singleResult.company_logo = result1.company_logo
+                    singleResult.hr_email = result1.hr_email
+                    singleResult.name = result1.name
+                }
+            }
+            res.send(result)
+
+        })
+
+        app.patch("/job-application/:id", async (req, res) => {
+            const id = req.params.id
+            const body = req.body
+            console.log(body)
+            const query = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    status: body.status
+                }
+            }
+            const result = await UserJobCollection.updateOne(query, updateDoc)
             res.send(result)
         })
 
