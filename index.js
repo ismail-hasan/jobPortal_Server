@@ -38,9 +38,9 @@ async function run() {
 
 
         // jwt related api
-        app.get("jwt", async (req, res) => {
+        app.post("/jwt", async (req, res) => {
             const body = req.body
-            const token = jwt.sign(body, "secret", { expiresIn: "1h" })
+            const token = jwt.sign(body, process.env.SECREET_TOKEN, { expiresIn: "1h" })
             res.send(token)
         })
 
